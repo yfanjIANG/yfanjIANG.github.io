@@ -1,1 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Colorizing the Prokudin-Gorskii Photo Collection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #3d5a80;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+        }
+        nav {
+            background-color: #293241;
+            padding: 10px;
+            text-align: center;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin: 0 15px;
+            font-size: 18px;
+        }
+        section {
+            max-width: 900px;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #3d5a80;
+        }
+        .gallery img {
+            max-width: 100%;
+            height: auto;
+            border: 2px solid #3d5a80;
+            margin: 10px 0;
+        }
+        .gallery .small {
+        max-width: 50%; 
+        }
+        footer {
+            background-color: #293241;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
+        }
+    </style>
+</head>
+<body>
 
+    <header>
+        <h1>Colorizing the Prokudin-Gorskii Photo Collection</h1>
+    </header>
+
+    <nav>
+        <a href="#overview">Project Overview</a>
+        <a href="#single-alignment">Single Alignment & Metrics</a>
+        <a href="#pyramid-alignment">Pyramid Alignment</a>
+        <a href="#bells-whistles">Bells & Whistles</a>
+        <a href="#gallery">Gallery</a>
+    </nav>
+
+    <section id="overview">
+        <h2>Project Overview</h2>
+        <p>Sergei Mikhailovich Prokudin-Gorskii (1863-1944) was a visionary in the field of color photography. In the early 20th century, he captured thousands of color photographs across the Russian Empire using a unique method of recording three exposures of each scene through red, green, and blue filters. The goal of this project is to take the digitized Prokudin-Gorskii glass plate images and, using image processing techniques, produce color images with minimal visual artifacts.</p>
+    </section>
+
+    <section id="single-alignment">
+        <h2>Single Alignment & Metric Exploration</h2>
+        <p>The principle of single alignment involves calculating the optimal displacement between channels by using the Normalized Cross-Correlation (NCC) metric. The NCC metric measures the similarity between two images by computing the dot product of normalized vectors derived from the images. This approach is particularly robust when dealing with varying brightness levels across different channels, as it focuses on the structural similarities rather than raw pixel values.</p>
+        <p>As recommended in the project description, I designed an align function which performs an exhaustive search over a [-15,15] range of pixel displacements by using two for loops. For each possible displacement, the function uses np.roll to shift the image and then calculates the NCC score. The displacement which yields the highest NCC score is considered the optimal alignment.</p>
+        <p>
+            During the experimentation, it turned out that using Normalized Cross-Correlation (NCC) as the alignment metric produced better results compared to simpler metrics like the Sum of Squared Differences (SSD). The primary reason for this I think is that NCC is inherently more robust in handling variations in brightness between the different color channels. While SSD operates on raw pixel values, making it sensitive to differences in intensity across the channels, NCC normalizes the pixel values before computing the similarity. This normalization process allows NCC to focus on the structural and spatial patterns within the images rather than being influenced by varying brightness levels.
+            
+            </p>
+            <div class="gallery">
+                <img src="./media/cathedral.jpg" >
+                <figcaption>Cathedral - G:(5,2), R:(12,3)</figcaption>
+                <img src="./media/tobolsk.jpg" >
+                <figcaption>Tobolsk - G:(3,3), R:(6,3)</figcaption>
+                <img src="./media/monastery.jpg" >
+                <figcaption>Monastery - G:(-3,2), R:(3,2)</figcaption>
+
+            </div>
+    </section>
+
+    <section id="pyramid-alignment">
+        <h2>Pyramid Alignment for Larger Images</h2>
+        <p>The large size of the Prokudin-Gorskii glass plate images presents a challenge when performing exhaustive search alignment, as it becomes computationally expensive. To tackle this, I thought about how image pyramids, as indicated in the project description, could offer a solution by reducing the search space and computation time.</p>
+        <p>I began by downsampling the image to a coarser scale, which allowed for a faster, rough alignment. My idea was that if I could find a decent alignment at a lower resolution, I could then refine it by moving to higher resolutions. This multi-scale approach seemed like a practical way to balance accuracy and efficiency.</p>
+        <p>Starting from the coarser scale, I adjusted the alignment based on the smaller image, then gradually increased the resolution, refining the alignment at each step. This step-by-step refinement ensured that the final alignment was both precise and computationally feasible, even for large images. </p>
+        <!-- Add images or code snippets if necessary -->
+        <div class="gallery">
+            <img src="./media/church.jpg" class="small">
+            <figcaption>Church- G:(25,4), R:(58,-4)</figcaption>
+            <img src="./media/emir.jpg" class="small">
+            <figcaption>Emir - G:(49,23), R:(107,40)</figcaption>
+            <img src="./media/harvesters.jpg" class="small">
+            <figcaption>Harvesters - G:(60,18), R:(123,15)</figcaption>
+            <img src="./media/icon.jpg" class="small">
+            <figcaption>Harvesters - G:(38,16), R:(88,22)</figcaption>
+            <img src="./media/lady.jpg" class="small">
+            <figcaption>Lady - G:(57,9), R:(120,13)</figcaption>
+            <img src="./media/melons.jpg" class="small">
+            <figcaption>Melons - G:(79,9), R:(177,14)</figcaption>
+
+        </div>
+    </section>
+
+    <section id="bells-whistles">
+        <h2>Bells & Whistles</h2>
+        <h3>4.1 Auto Cropping</h3>
+        <p>In the process of improving the output images, I explored different cropping methods to remove unwanted borders and artifacts. Initially, I implemented a proportional cropping method, which crops the image to a fixed percentage of its original size. This was a simple and effective way to ensure that the important content remained in the center, but it wasn't automatic cropping.</p>
+        <p>After reading about other techniques on Ed discussion, I came across the use of cv2.findContours.It works by detecting the outermost edges of the content in the image and cropping the image accordingly. This approach dynamically adjusts the cropping based on the actual content of the image, providing more accurate and flexible results.However, I think the application of this method does not achieve good results.</p>
+        <div class="gallery">
+            <img src="./media/cathedral_wocrop.jpg" >
+            <figcaption>Cathedral - Before cropping</figcaption>
+            <img src="./media/cathedral.jpg" >
+            <figcaption>Cathedral - After cropping</figcaption>
+
+        </div>
+        <h3>4.2 Auto Contrasting</h3>
+        <p>Auto contrasting is applied to enhance the image's visual quality by adjusting the pixel intensity range. 
+            This technique stretches the intensity values so that the darkest pixel is mapped to zero and the brightest pixel is mapped to one. By doing this, the image achieves better contrast, which highlights details and improves overall clarity. In this project, I used the sk.exposure.equalize_adapthist function to implement this feature, ensuring a more balanced distribution of pixel intensities across the image. This section showcases the improvements made using this method to enhance image quality effectively.</p>
+            <div class="gallery">
+                <img src="./media/monastery.jpg" >
+                <figcaption>Monastery - Before contrasting</figcaption>
+                <img src="./media/monastery_contrast.jpg" >
+                <figcaption>Monastery - After contrasting</figcaption>
+                <img src="./media/emir.jpg" class="small">
+                <figcaption>Emir - Before contrasting</figcaption>
+                <img src="./media/emir_contrast.jpg" class="small">
+                <figcaption>Emir - After contrasting</figcaption>
+                
+            
+    
+            </div>
+        <h3>4.3 Edge Detection</h3>
+        <p>I applied the Canny edge detector to improve image alignment by focusing on object edges rather than overall brightness. This method works particularly well when different color channels have varying brightness levels, which can make alignment based on pixel values less reliable. By detecting edges, the algorithm captures key structural features in each color channel, some of the results are shown below.</p>
+        <div class="gallery">
+            <img src="./media/harvesters_woedge.jpg" class="small">
+            <figcaption>Harvesters - Before edge detection</figcaption>
+            <img src="./media/harvesters_wedge.jpg" class="small">
+            <figcaption>Harvesters - After edge detection</figcaption>
+            <img src="./media/emir_woedge.jpg" class="small">
+            <figcaption>Emir - Before edge detection</figcaption>
+            <img src="./media/emir_wedge.jpg" class="small">
+            <figcaption>Emir - After edge detection</figcaption>
+        
+
+        </div>
+    </section>
+
+    <section id="gallery">
+        <h2>Gallery</h2>
+        <div class="gallery">
+            <img src="./media/cathedral_contrast.jpg" >
+            <figcaption>Cathedral - G:(5,2), R:(12,3)</figcaption>
+            <img src="./media/tobolsk_contrast.jpg" >
+            <figcaption>Tobolsk - G:(3,3), R:(6,3)</figcaption>
+            <img src="./media/monastery_contrast.jpg" >
+            <figcaption>Monastery - G:(-3,2), R:(3,2)</figcaption>
+            <img src="./media/church.jpg" class="small">
+            <figcaption>Church- G:(25,4), R:(58,-4)</figcaption>
+            <img src="./media/emir.jpg" class="small">
+            <figcaption>Emir - G:(49,23), R:(107,40)</figcaption>
+            <img src="./media/harvesters.jpg" class="small">
+            <figcaption>Harvesters - G:(60,18), R:(123,15)</figcaption>
+            <img src="./media/icon.jpg" class="small">
+            <figcaption>Harvesters - G:(38,16), R:(88,22)</figcaption>
+            <img src="./media/lady.jpg" class="small">
+            <figcaption>Lady - G:(57,9), R:(120,13)</figcaption>
+            <img src="./media/melons.jpg" class="small">
+            <figcaption>Melons - G:(79,9), R:(177,14)</figcaption>
+            <img src="./media/onion_church_contrast.jpg" class="small">
+            <figcaption>Onion_church - G:(52,23), R:(107,34)</figcaption>
+            <img src="./media/sculpture_contrast.jpg" class="small">
+            <figcaption>Sculpture - G:(33,-11), R:(140,-27)</figcaption>
+            <img src="./media/self_portrait_contrast.jpg" class="small">
+            <figcaption>Self_portrait - G:(77,29), R:(175,37)</figcaption>
+            <img src="./media/three_generations_contrast.jpg" class="small">
+            <figcaption>Three_generations - G:(56,12), R:(107,7)</figcaption>
+            <img src="./media/train_contrast.jpg" class="small">
+            <figcaption>Train - G:(40,8), R:(85,29)</figcaption>
+        </div>
+    </section>
+
+
+    <section id="acknowledgment">
+        <h2>Acknowledgment</h2>
+        <p>I would like to express my gratitude to ChatGPT for providing the website template and for assisting me throughout the development process. The insightful guidance helped improve the quality of the project.</p>
+        <p>For a detailed conversation and insights provided by ChatGPT, you can refer to the following link: <a href="https://chatgpt.com/share/bf5bcd98-2c1d-41d5-98c5-c2e17bde4b87" target="_blank">ChatGPT Conversation</a>.</p>
+    </section>
+
+
+    
+
+</body>
+</html>
